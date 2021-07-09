@@ -46,6 +46,7 @@ namespace CreateKnxProd
         private Hardware2Program_T _hardware2Program;
         private ApplicationProgramRef_T _appProgRef;
         private ApplicationProgramStatic_TCodeRelativeSegment _codeSegment;
+        private ApplicationProgramDynamic_T _originalDynamic;
 
         public MainWindowViewModel(IDialogService dialogService)
         {
@@ -125,6 +126,7 @@ namespace CreateKnxProd
                 _applicationProgram = _manufacturerData.ApplicationPrograms.First();
                 _appProgRef = _hardware2Program.ApplicationProgramRef.First();
                 _codeSegment = _applicationProgram.Static.Code.RelativeSegment.First();
+                _originalDynamic = _applicationProgram.Dynamic;
 
                 Parameters.Clear();
                 foreach (var item in _applicationProgram.Static.Parameters.Parameter)
@@ -195,7 +197,8 @@ namespace CreateKnxProd
 
                 UpdateMediumInfo();
                 HandleParameters();
-                RegenerateDynamic();
+                if(Properties.Settings.Default.RegenerateDynamic)
+                    RegenerateDynamic();
                 CreateLoadProcedures();
                 HandleComObjects();
                 CorrectIds();
@@ -586,16 +589,22 @@ namespace CreateKnxProd
                 comObjRef.RefId = comObjRef.ComObject.Id;
             }
 
-            i = 1;
-            foreach (var parameterBlock in _applicationProgram.Dynamic.ChannelIndependentBlock.First().ParameterBlock)
-            {
-                parameterBlock.Id = string.Format("{0}_PB-{1}", _applicationProgram.Id, i++);
-                foreach (var item in parameterBlock.ParameterRefRef)
-                    item.RefId = item.ParameterRef.Id;
+            if(Properties.Settings.Default.RegenerateDynamic)
+            { 
+                i = 1;
+                foreach (var parameterBlock in _applicationProgram.Dynamic.ChannelIndependentBlock.First().ParameterBlock)
+                {
+                    parameterBlock.Id = string.Format("{0}_PB-{1}", _applicationProgram.Id, i++);
+                    foreach (var item in parameterBlock.ParameterRefRef)
+                        item.RefId = item.ParameterRef.Id;
 
-                foreach (var item in parameterBlock.ComObjectRefRef)
-                    item.RefId = item.ComObjectRef.Id;
+                    foreach (var item in parameterBlock.ComObjectRefRef)
+                        item.RefId = item.ComObjectRef.Id;
+                }
             }
+            else
+                _applicationProgram.Dynamic = _originalDynamic;
+       
         }
 
         private void Export(object param)
